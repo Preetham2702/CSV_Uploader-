@@ -1,0 +1,12 @@
+Flask==2.3.3
+pandas==2.2.2
+psycopg2-binary==2.9.9
+matplotlib==3.8.4
+opencv-python==4.9.0.80
+numpy==1.26.4
+imageio[ffmpeg]==2.34.0
+Pillow==10.3.0
+Werkzeug==3.0.1
+
+#install ffmpeg 
+#brew install ffmpeg

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Enter Machine Details</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 50px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    form {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    a {
+      color: #007bff;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Enter Machine Details</h1>
+  
+  <form method="POST" action="{{ url_for('machine', stage=stage) }}">
+    <input type="hidden" name="stage" value="{{ stage }}">
+
+    <label for="machine_name">Machine Name</label>
+    <input type="text" name="machine_name" required>
+
+    <label for="machine_id">Machine ID</label>
+    <input type="number" name="machine_id" required>
+
+    <label for="material_id">Select Material</label>
+    <select name="material_id" required>
+      {% for mat_id, mat_name in materials %}
+        <option value="{{ mat_id }}">{{ mat_id }} - {{ mat_name }}</option>
+      {% endfor %}
+    </select>
+
+    <label for="deposit_id">Deposit ID</label>
+    <input type="number" name="deposit_id" required>
+
+    <label for="design_id">Design ID</label>
+    <input type="number" name="design_id" required>
+
+    <button type="submit">Submit</button>
+  </form>
+
+  <div style="text-align: center; margin-top: 20px;">
+    <a href="{{ url_for('add_material', stage=stage) }}">Add New Material</a>
+  </div>
+
+  <div style="text-align: center; margin-top: 10px;">
+    <a href="{{ url_for('main_page') }}">← Back to Main Page</a>
+  </div>
+
+</body>
+</html>

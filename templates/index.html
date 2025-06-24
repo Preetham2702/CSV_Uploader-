@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSV File Uploader</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f4f4f4;
+    }
+
+    .top-buttons {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .top-buttons a {
+      text-decoration: none;
+      background: #f0f0f0;
+      padding: 10px 20px;
+      border-radius: 5px;
+      color: #007bff;
+      font-weight: bold;
+    }
+
+    .top-buttons a:hover {
+      background-color: #e0e0e0;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 3em;
+      margin-bottom: 40px;
+    }
+
+    form.upload-form {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .upload-form input[type="file"] {
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .upload-form button {
+      padding: 10px 25px;
+      font-size: 16px;
+      margin-left: 10px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .upload-form button:hover {
+      background-color: #218838;
+    }
+
+    #uploadStatus {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    .search-clear-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .search-container input {
+      padding: 10px;
+      width: 300px;
+      font-size: 16px;
+    }
+    .clear-button {
+      padding: 10px 20px;
+      background: #dc3545;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .clear-button:hover {
+      background: #c82333;
+    }
+
+    .table-wrapper {
+      max-height: 600px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      background: white;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 12px 15px;
+      border-bottom: 1px solid #ddd;
+      text-align: left;
+    }
+
+    th {
+      background-color: #f2f2f2;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+     /* New: loading modal styles */
+     #loadingModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0,0,0,0.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #loadingModal div {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      font-size: 20px;
+      text-align: center;
+    }
+    /* Video button style */
+    .video-button {
+    margin-left: 15px;
+    font-size: 14px;
+    background: #ffc107;
+    padding: 4px 10px;
+    border-radius: 5px;
+    color: black;
+    text-decoration: none;
+    }
+
+    .video-button:hover {
+      background-color: #e0a800;
+      color: black;
+    
+    }
+    .video-section {
+      margin-bottom: 15px;
+    }
+
+    .video-top-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #17a2b8;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+
+    .video-top-button:hover {
+      background-color: #138496;
+      color: white;
+    }
+
+    /* Modal overlay */
+    .loading-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+      color: white;
+    }
+
+    /* Modal content box */
+    .loading-modal-content {
+      background: #333;
+      padding: 20px;
+      border-radius: 8px;
+      position: relative;
+      text-align: center;
+    }
+
+    /* Close (X) button */
+    .close-button {
+      position: absolute;
+      top: 5px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+  </style>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CSV Files Uploader</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+
+  <div id="loadingModal" class="loading-modal">
+    <div class="loading-modal-content">
+      <span id="cancelButton" class="close-button">&times;</span>
+      <p>⏳ Generating video, please wait...</p>
+    </div>
+  </div>
+
+  <!-- Bulk upload loading -->
+  <div id="bulkLoadingModal" class="loading-modal">
+    <div class="loading-modal-content">
+      <h3>Uploading files...</h3>
+      <div id="progressText">Processing folder, please wait ⏳</div>
+      <button onclick="cancelBulkUpload()" style="margin-top:10px;">Cancel Upload</button>
+    </div>
+  </div>
+
+  <!-- Success modal -->
+  <div id="successModal" class="loading-modal">
+    <div class="loading-modal-content">
+      <h3 style="color:green;">✅ Bulk Upload Completed!</h3>
+      <button onclick="location.reload()">OK</button>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons at Top -->
+  <div class="top-buttons">
+    <a href="{{ url_for('machine',stage=stage) }}">↩ Back to Machine Page</a>
+  </div>
+
+  <h1>CSV File Uploader</h1>
+
+  <form class="upload-form" id="uploadForm">
+    <div style="margin-bottom: 10px;">
+      <label><input type="radio" name="uploadMode" value="files" checked onchange="toggleInput()"> Upload Files</label>
+      <label style="margin-left: 20px;"><input type="radio" name="uploadMode" value="folder" onchange="toggleInput()"> Upload Folder</label>
+    </div>
+
+    <input type="file" id="fileInput" multiple>
+    <button type="button" onclick="uploadFiles()">Upload</button>
+    <p id="uploadStatus"></p>
+  </form>
+
+  <form action="/clear_selected" method="post" id="clearForm">
+    <input type="hidden" name="stage" value="{{ stage }}">
+    <input type="hidden" name="machine_id" value="{{ machine_id }}">
+    <input type="hidden" name="material_id" value="{{ material_id }}">
+    <div class="search-clear-bar">
+      <div style="display: flex; align-items: center;">
+        <div class="search-container">
+          <input type="text" id="searchInput" placeholder="Search files...">
+        </div>
+      </div>
+      <button type="submit" class="clear-button">Clear Selected Files</button>
+    </div>
+
+    {% if stage == 'ircamera' %}
+    <div class="video-section">
+      <a href="#" class="video-top-button"onclick="return showLoadingAndRedirect('{{ url_for('generate_top_level_video', folder=folder) }}');">🎬 Video from Individual Files</a>
+    </div>
+    {% endif %}
+
+    <div class="table-wrapper">
+      <table id="fileTable">
+        <thead>
+          <tr><th>Select</th><th>Filename</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% if files %}
+            {% set folder_index = 0 %}
+            
+            {# Handle individual files directly in root folder #}
+            {% if files[''] %}
+              {% for file in files[''] %}
+                {% set full_path = file %}  {# Define full_path for root files too #}
+                <tr>
+                  <td><input type="checkbox" name="selected_files" value="{{ full_path }}"></td>
+                  <td class="filename">{{ full_path }}</td>
+                  <td>
+                    {% if stage == 'ircamera' %}
+                      <a href="{{ url_for('preview_ircamera',  deposit_id=deposit_id,design_id=design_id,filename=full_path, machine_id=machine_id, material_id=material_id, stage=stage) }}">Image Data</a>
+                      <a href="{{ url_for('view_ircamera', deposit_id=deposit_id,design_id=design_id,filename=full_path, machine_id=machine_id, material_id=material_id, stage=stage) }}">Thermal Image</a>
+                      <form action="{{ url_for('s3ircamera_update', filename=full_path) }}" method="post"></form>
+                    {% else %}
+                      <span style="color: grey;">No preview available</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endif %}
+        
+            {# Handle files inside folders #}
+            {% for folder, folder_files in files.items() if folder != '' %}
+              {% set folder_index = folder_index + 1 %}
+              <tr class="folder-header" onclick="toggleFolder('folder-{{ folder_index }}')" style="cursor:pointer; font-weight:bold; background-color: #f8f8f8;">
+                <td><input type="checkbox" name="selected_files" value="{{ folder }}/"></td>
+                <td colspan="2">
+                  📁 {{ folder }}
+                  {% if stage == 'ircamera' %}
+                    <a href="#" class="video-button"onclick="return showLoadingAndRedirect('{{ url_for('generate_folder_video', folder=folder) }}');">🎬 Folder Video</a>
+                    <button type="button" class="bulk-button"onclick="startBulkUpload('{{ url_for('bulk_update_folder', folder=folder, machine_id=machine_id, material_id=material_id, stage=stage) }}')">🔄 Bulk Update to Database</button>
+                  {% endif %}
+                </td>
+              </tr>
+        
+              {% for file in folder_files %}
+                {% if file.startswith(folder + '/') %}
+                  {% set full_path = file %}
+                {% else %}
+                  {% set full_path = folder ~ '/' ~ file %}
+                {% endif %}
+                <tr class="folder-files folder-{{ folder_index }}" style="display: none;">
+                  <td><input type="checkbox" name="selected_files" value="{{ full_path }}"></td>
+                  <td class="filename">{{ file }}</td>
+                  <td>
+                    {% if stage == 'ircamera' %}
+                      <a href="{{ url_for('preview_ircamera', deposit_id=deposit_id,design_id=design_id,filename=full_path, machine_id=machine_id, material_id=material_id, stage=stage) }}">Image Data</a>
+                      <a href="{{ url_for('view_ircamera', deposit_id=deposit_id,design_id=design_id, filename=full_path, machine_id=machine_id, material_id=material_id, stage=stage) }}">Thermal Image</a>
+                      <form action="{{ url_for('s3ircamera_update', filename=full_path) }}" method="post"></form>
+                    {% else %}
+                      <span style="color: grey;">No preview available</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          {% else %}
+            <tr><td colspan="3" style="text-align: center; color: gray;">No files uploaded yet.</td></tr>
+          {% endif %}
+        </tbody>        
+      </table>
+    </div>
+  </form>
+
+  <script>
+    function toggleFolder(folderClass) {
+      const rows = document.querySelectorAll(`.${folderClass}`);
+      rows.forEach(row => {
+        row.style.display = row.style.display === 'none' ? '' : 'none';
+      });
+    }
+
+    function toggleInput() {
+      const fileInput = document.getElementById('fileInput');
+      const mode = document.querySelector('input[name="uploadMode"]:checked').value;
+
+      if (mode === 'folder') {
+        fileInput.setAttribute('webkitdirectory', '');
+        fileInput.setAttribute('directory', '');
+        fileInput.removeAttribute('multiple');
+      } else {
+        fileInput.removeAttribute('webkitdirectory');
+        fileInput.removeAttribute('directory');
+        fileInput.setAttribute('multiple', '');
+      }
+    }
+
+    const searchInput = document.getElementById('searchInput');
+    const rows = document.querySelectorAll('#fileTable tbody tr');
+
+    searchInput?.addEventListener('keyup', () => {
+      const query = searchInput.value.toLowerCase();
+      rows.forEach(row => {
+        const filename = row.querySelector('.filename');
+        if (filename) {
+          const text = filename.textContent.toLowerCase();
+          row.style.display = text.includes(query) ? '' : 'none';
+        }
+      });
+    });
+
+    async function uploadFiles() {
+      const input = document.getElementById('fileInput');
+      let files = Array.from(input.files);
+      const status = document.getElementById('uploadStatus');
+
+      if (files.length === 0) {
+        alert('Please select files or a folder.');
+        return;
+      }
+
+      files.sort((a, b) => {
+        return (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name);
+      });
+
+      const CHUNK_SIZE = 500;
+      status.textContent = `Uploading ${files.length} files...`;
+
+      for (let i = 0; i < files.length; i += CHUNK_SIZE) {
+        const chunk = files.slice(i, i + CHUNK_SIZE);
+        const formData = new FormData();
+        chunk.forEach(file => {
+          const relativePath = file.webkitRelativePath || file.name;
+          formData.append('files[]', file, relativePath);
+        });
+
+        try {
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error(`Chunk ${i / CHUNK_SIZE + 1} failed`);
+          }
+
+          status.textContent = `Uploaded ${Math.min(i + CHUNK_SIZE, files.length)} / ${files.length} files...`;
+        } catch (err) {
+          status.textContent = `Error: ${err.message}`;
+          break;
+        }
+      }
+
+      status.textContent = 'Upload complete.';
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+
+    let controller = null;
+
+    function showLoadingAndRedirect(url) {
+      const modal = document.getElementById("loadingModal");
+      modal.style.display = "flex";
+
+      controller = new AbortController();
+
+      fetch(url, { signal: controller.signal })
+        .then(response => {
+          if (response.ok) {
+            return response.url;
+          } else {
+            throw new Error("Video generation failed.");
+          }
+        })
+        .then(videoUrl => {
+          window.location.href = videoUrl;
+        })
+        .catch(error => {
+          if (error.name === "AbortError") {
+            console.log("Video generation canceled.");
+          } else {
+            alert(error.message || "Error generating video.");
+          }
+          modal.style.display = "none";
+        });
+
+      return false;
+    }
+
+    document.getElementById("cancelButton").onclick = () => {
+      if (controller) controller.abort();
+      document.getElementById("loadingModal").style.display = "none";
+    };
+
+    // Bulk upload logic
+    let cancelRequested = false;
+    function startBulkUpload(url) {
+      cancelRequested = false;
+      document.getElementById("bulkLoadingModal").style.display = "block";
+      fetch(url, { method: 'POST' })
+        .then(() => {
+          document.getElementById("bulkLoadingModal").style.display = "none";
+          document.getElementById("successModal").style.display = "block";
+        })
+        .catch(() => {
+          document.getElementById("bulkLoadingModal").style.display = "none";
+          alert("Upload failed!");
+        });
+    }
+    function cancelBulkUpload() {
+      cancelRequested = true;
+      document.getElementById("bulkLoadingModal").style.display = "none";
+      alert("Upload canceled.");
+    }
+    
+  </script>
+</body>
+</html>

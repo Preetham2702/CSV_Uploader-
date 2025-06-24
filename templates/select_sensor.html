@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select Sensor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 50px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .button-container {
+      max-width: 400px;
+      margin: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    form button {
+      padding: 15px 30px;
+      font-size: 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    form button:hover {
+      background-color: #0056b3;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Select Sensor</h1>
+
+  <form method="POST" action="{{ url_for('handle_sensor_selection') }}" class="button-container">
+    <button type="submit" name="sensor" value="sensor1">Sensor 1</button>
+    <button type="submit" name="sensor" value="sensor2">Sensor 2</button>
+    <button type="submit" name="sensor" value="sensor3">Sensor 3</button>
+  </form>
+
+  <div class="back-link">
+    <a href="{{ url_for('main_page') }}">Back to Main Page</a>
+  </div>
+
+</body>
+</html>

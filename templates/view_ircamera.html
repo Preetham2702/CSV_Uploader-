@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Thermal View - {{ filename }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f4f4f4;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+    }
+    .table-container {
+      margin-bottom: 30px;
+      overflow-x: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+      padding: 5px;
+    }
+    .back-link {
+      display: inline-block; 
+      margin-top: 30px; 
+      color: #007bff; 
+      text-decoration: none;
+    }
+    .back-link:hover { 
+      text-decoration: underline; 
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Thermal Image View: {{ filename }}</h1>
+
+  <div class="table-container">
+    {{ table[0] | safe }}
+  </div>
+
+  <a class="back-link" href="{{ url_for('index',stage=stage, machine_id=machine_id, material_id=material_id) }}">← Back to File List</a>
+
+</body>
+</html>

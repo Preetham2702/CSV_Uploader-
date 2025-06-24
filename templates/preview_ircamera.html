@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Preview - {{ filename }}</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 40px;
+      background: #f4f4f4;
+    }
+    h1 {
+      font-size: 2.5em;
+      margin-bottom: 20px;
+    }
+    .table-container {
+      margin-bottom: 30px;
+      overflow-x: auto;
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    table, th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    th {
+      background: whitesmoke;
+      color: black;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .update-btn { background: #28a745; }
+    .delete-btn { background: #dc3545; }
+    .success { color: green; font-weight: bold; margin-top: 20px; }
+    a.back-link {
+      display: inline-block; margin-top: 30px; color: #007bff;
+      text-decoration: none;
+    }
+    a.back-link:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Image Data: {{ filename }}</h1>
+
+  <div class="table-container">
+    {{ tables[0] | safe }}
+  </div>
+
+  {% if show_button %}
+  <div class="buttons">
+    <form action="{{ url_for('s3ircamera_update', filename=filename) }}" method="post">
+      <input type="hidden" name="machine_id" value="{{ machine_id }}">
+      <input type="hidden" name="material_id" value="{{ material_id }}">
+      <input type="hidden" name="deposit_id" value="{{ deposit_id}}">
+      <input type="hidden" name="design_id" value="{{ design_id }}">
+      <input type="hidden" name="stage" value="{{ stage }}">
+      <button class="btn update-btn" type="submit">Update to Database</button>
+    </form>
+
+    <form action="{{ url_for('delete_file', filename=filename) }}" method="post">
+      <button class="btn delete-btn" type="submit">Delete File</button>
+    </form>
+  </div>
+  {% endif %}
+
+  {% if message %}
+    <div class="success">{{ message }}</div>
+  {% endif %}
+
+  <a class="back-link" href="{{ url_for('index', deposite_id=deposite_id,design_id=design_id,stage=stage, machine_id=machine_id, material_id=material_id) }}">← Back to File List</a>
+</body>
+</html>
