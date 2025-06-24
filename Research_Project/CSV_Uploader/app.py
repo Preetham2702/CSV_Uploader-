@@ -613,7 +613,7 @@ def generate_folder_video(folder):
         print(f"Video generation failed: {e}")
         return f"Error: {e}", 500
 
-
+#having some errors 
 @app.route('/generate_video_top_level')
 def generate_top_level_video():
     output_path = os.path.join("static", "videos", "top_level_video.mp4")
@@ -727,4 +727,6 @@ def delete_file(filename):
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    app.run(port=5001, debug=True)
+    app.run(port=5000, debug=True)
+
+
