@@ -1,20 +1,21 @@
-# Ignore virtual environment
-venv/
+# Ignore IDE/editor config
+.vscode/
+.idea/
 
-# Ignore Python cache
-__pycache__/
+# Ignore local database files
+*.sqlite3
 
-# Ignore uploads and generated files
-uploads/
-*.csv
-*.pyc
+# Ignore untracked project folders from sibling directories
+../../ClauseBot/
+../../Fitness_Tracker/
+../../PickHacks2025-Project/
+../../Ranjit/
+../../cs2300-docker-sql/
 
-# macOS system files
-.DS_Store
+# Ignore static/media folders if not needed
+static/
+videos/
 
-# Ignore images and PDFs
-*.png
-*.jpg
-*.jpeg
-*.pdf
+# Local system files
+.localized
 
