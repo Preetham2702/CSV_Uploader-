@@ -101,13 +101,11 @@ def machine():
         machine_name = request.form['machine_name']
         material_id = int(request.form['material_id'])
         deposit_id = int(request.form['deposit_id'])
-        design_id = int(request.form['design_id'])
         
         # store in session
         session['machine_id'] = machine_id
         session['material_id'] = material_id
         session['deposit_id'] = deposit_id
-        session['design_id'] = design_id
         session['stage'] = stage
 
         try:
@@ -126,11 +124,11 @@ def machine():
             conn.close()
 
         if stage == 'design_stage':
-            return redirect(url_for('design_stage',deposit_id=deposit_id, design_id=design_id, stage=stage, machine_id=machine_id, material_id=material_id))
+            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id))
         elif stage == 'post_process':
-            return redirect(url_for('post_process', deposit_id=deposit_id, design_id=design_id, stage=stage, machine_id=machine_id, material_id=material_id))
+            return redirect(url_for('post_process', deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id))
         else:
-            return redirect(url_for('index', deposit_id=deposit_id, design_id=design_id,stage=stage, machine_id=machine_id, material_id=material_id))
+            return redirect(url_for('index', deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id))
 
     # Pass materials list to your machine.html template
     return render_template('machine.html', materials=materials, stage=stage)
@@ -172,7 +170,6 @@ def index():
     machine_id = request.args.get('machine_id') or session.get('machine_id')
     material_id = request.args.get('material_id') or session.get('material_id')
     deposit_id = request.args.get('deposit_id') or session.get('deposit_id')
-    design_id = request.args.get('design_id') or session.get('design_id')
     stage = request.args.get('stage') or session.get('stage')
     message = request.args.get('message') 
 
@@ -194,7 +191,7 @@ def index():
                 folder = rel_dir.split(os.sep)[0]
                 grouped_files.setdefault(folder, []).append(rel_file)
 
-    return render_template('index.html', deposit_id=deposit_id, design_id=design_id,files=grouped_files,stage=stage,machine_id=machine_id,material_id=material_id,message=message)  # pass message to template
+    return render_template('index.html', deposit_id=deposit_id,files=grouped_files,stage=stage,machine_id=machine_id,material_id=material_id,message=message)  # pass message to template
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -210,7 +207,6 @@ def design_stage():
     machine_id = request.args.get('machine_id')
     material_id = request.args.get('material_id')
     deposit_id = request.args.get('deposit_id') or session.get('deposit_id')
-    design_id = request.args.get('design_id') or session.get('design_id')
     stage = request.args.get('stage')
 
     if request.method == 'POST':
@@ -238,13 +234,13 @@ def design_stage():
 
             if file_exists > 0:
                 # File already uploaded — show preview with message
-                return render_template('design_stage.html',deposit_id=deposit_id, design_id=design_id,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
+                return render_template('design_stage.html',deposit_id=deposit_id,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
             
-            cur.execute("INSERT INTO design_stage (file_name,width,height,depth,m_id, mat_id, design_id,deposit_id) VALUES (%s, %s, %s, %s, %s, %s,%s,%s)", (file_name,width,height,depth,machine_id, material_id,design_id,deposit_id))
+            cur.execute("INSERT INTO design_stage (deposit_id,file_name,width,height,depth,m_id, mat_id) VALUES (%s, %s, %s, %s, %s, %s,%s)", (deposit_id, file_name,width,height,depth,machine_id, material_id))
 
             conn.commit()
 
-            return redirect(url_for('design_stage',deposit_id=deposit_id, design_id=design_id, stage=stage, machine_id=machine_id, material_id=material_id,message = 'Inserted values sucessfully'))
+            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id,message = 'Inserted values sucessfully'))
 
         except Exception as e:
             return f"Error inserting values {e}"
@@ -253,7 +249,7 @@ def design_stage():
             cur.close()
             conn.close()  
 
-    return render_template("design_stage.html",deposit_id=deposit_id, design_id=design_id,stage=stage, machine_id=machine_id, material_id=material_id,message=request.args.get("message"))
+    return render_template("design_stage.html",deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id,message=request.args.get("message"))
         
 
 @app.route('/preview_sensor1/<path:filename>')
@@ -303,7 +299,6 @@ def preview_ircamera(filename):
     machine_id = session.get('machine_id')
     material_id = session.get('material_id')
     deposit_id = session.get('deposit_id')
-    design_id = session.get('design_id')
     stage = session.get('stage')
 
     if not machine_id or not material_id:
@@ -321,7 +316,7 @@ def preview_ircamera(filename):
     try:
         df = extract_ircamera_dataframe(safe_path)
         df_html = df.to_html(classes='table table-bordered', index=False, escape=False)
-        return render_template('preview_ircamera.html', tables=[df_html], deposit_id=deposit_id, design_id=design_id, filename=filename,show_button=True, machine_id=machine_id, material_id=material_id, stage='ircamera')
+        return render_template('preview_ircamera.html', tables=[df_html], deposit_id=deposit_id,filename=filename,show_button=True, machine_id=machine_id, material_id=material_id, stage='ircamera')
 
     except Exception as e:
         return f"Error: {e}", 500
@@ -368,7 +363,6 @@ def s3ircamera_update(filename):
     machine_id = session.get('machine_id')
     material_id = session.get('material_id')
     deposit_id = session.get('deposit_id')
-    design_id = session.get('design_id')
     stage = session.get('stage')
 
 
@@ -387,14 +381,14 @@ def s3ircamera_update(filename):
 
         if file_exists > 0:
             # File already uploaded — show preview with message
-            return render_template('preview_ircamera.html',tables=[df_html], deposit_id=deposit_id,design_id=design_id,filename=filename,show_button = False,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
+            return render_template('preview_ircamera.html',tables=[df_html], deposit_id=deposit_id,filename=filename,show_button = False,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
 
         # Otherwise continue insertion
         cur.execute("""
-            INSERT INTO in_process (deposit_id,design_id,File_name, Sensor_ID, m_id, mat_id, type)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO in_process (deposit_id,File_name, Sensor_ID, m_id, mat_id, type)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (File_name) DO NOTHING
-        """, (deposit_id,design_id,filename, 3, machine_id, material_id, 'IR_Camera'))
+        """, (deposit_id, filename, 3, machine_id, material_id, 'IR_Camera'))
 
         cur.execute("""
             INSERT INTO sensor3 (file_name, sensor_id, type_id, type)
@@ -404,15 +398,15 @@ def s3ircamera_update(filename):
 
         for idx, row in df.iterrows():
             row_index = idx + 1
-            values = [filename, 1, row_index] + [row[i] if pd.notna(row[i]) else None for i in df.columns]
+            values = [filename, 1, row_index] + [float(row[i]) if pd.notna(row[i]) else None for i in df.columns]
             cur.execute("""
-                INSERT INTO S3_IRCamera (
-                    File_name, type_id, Row_Index,
+                INSERT INTO s3_ircamera (
+                    file_name, type_id, Row_Index,
                     Col1, Col2, Col3, Col4, Col5, Col6, Col7, Col8, Col9, Col10,
                     Col11, Col12, Col13, Col14, Col15, Col16, Col17, Col18, Col19, Col20
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                           %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (File_name, Row_Index) DO NOTHING
+                ON CONFLICT (File_name, row_index) DO NOTHING
             """, values)
 
         conn.commit()
@@ -421,7 +415,7 @@ def s3ircamera_update(filename):
             os.remove(filepath)  
 
         # Show success message with preview
-        return redirect(url_for('index', deposit_id=deposit_id,design_id=design_id,stage=stage, machine_id=machine_id, material_id=material_id, message="File uploaded successfully"))
+        return redirect(url_for('index', deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id, message="File uploaded successfully"))
 
     except Exception as e:
         return f"Error uploading to Sensor3_IRCameraData: {e}", 500
@@ -434,7 +428,6 @@ def bulk_update_folder(folder):
     machine_id = int(request.args.get('machine_id'))
     material_id = int(request.args.get('material_id'))
     deposit_id = session.get('deposit_id')
-    design_id = session.get('design_id')
     stage = request.args.get('stage')
 
     base_path = os.path.join(app.config['UPLOAD_FOLDER'], folder)
@@ -464,10 +457,10 @@ def bulk_update_folder(folder):
 
             # Insert into in_process
             cur.execute("""
-                INSERT INTO in_process (deposit_id,design_id,File_name, Sensor_ID, m_id, mat_id, type)
-                VALUES (%s, %s, %s, %s, %s,%s,%s)
+                INSERT INTO in_process (deposit_id,File_name, Sensor_ID, m_id, mat_id, type)
+                VALUES (%s, %s, %s, %s, %s,%s)
                 ON CONFLICT (File_name) DO NOTHING
-            """, (deposit_id,design_id,filename, 3, machine_id, material_id, 'IR_Camera'))
+            """, (deposit_id,filename, 3, machine_id, material_id, 'IR_Camera'))
 
             # Insert into sensor3
             cur.execute("""
@@ -479,7 +472,7 @@ def bulk_update_folder(folder):
             # Insert into S3_IRCamera
             for idx, row in df.iterrows():
                 row_index = idx + 1
-                values = [filename, 1, row_index] + [row[i] for i in df.columns]
+                values = [filename, 1, row_index] + [float(row[i]) for i in df.columns]
                 cur.execute("""
                     INSERT INTO S3_IRCamera (
                         File_name, type_id, Row_Index,
@@ -506,7 +499,7 @@ def bulk_update_folder(folder):
             fail_count += 1
 
     print(f"Bulk upload completed: {success_count} files uploaded, {fail_count} failed.")
-
+    
     # Return just 204 → no reload. Frontend handles reload.
     return ('', 204)
 
@@ -524,7 +517,6 @@ def post_process():
     material_id = request.args.get('material_id')
     stage = request.args.get('stage')
     deposit_id = session.get('deposit_id')
-    design_id = session.get('design_id')
     
 
     if request.method == 'POST':
@@ -532,7 +524,7 @@ def post_process():
         material_id = request.form.get('material_id')
         stage = request.args.get('stage')
         file_name = request.form.get('file_name')
-        exp_id = request.form.get('exp_id')
+        deposit_id = request.form.get('deposit_id')
         hardness = request.form.get('hardness')
         uts = request.form.get('uts')
 
@@ -549,16 +541,16 @@ def post_process():
 
             if file_exists > 0:
                 # File already uploaded — show preview with message
-                return render_template('post_process.html',deposit_id=deposit_id, design_id=design_id,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
+                return render_template('post_process.html',deposit_id=deposit_id, machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
             
 
             cur.execute("""
-                INSERT INTO post_process(deposit_id, design_id, file_name, exp_id, hardness, uts, m_id, mat_id)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            """, (deposit_id, design_id, file_name,exp_id,hardness, uts, machine_id, material_id))
+                INSERT INTO post_process(deposit_id, file_name, hardness, uts, m_id, mat_id)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            """, (deposit_id,file_name,hardness, uts, machine_id, material_id))
             conn.commit()
 
-            return redirect(url_for('post_process',deposit_id=deposit_id, design_id=design_id, stage=stage, machine_id=machine_id, material_id=material_id,message = 'Inserted values sucessfully'))
+            return redirect(url_for('post_process',deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id,message = 'Inserted values sucessfully'))
 
         except Exception as e:
             return f"Error inserting values {e}"
@@ -568,7 +560,7 @@ def post_process():
             conn.close()  
 
             # Redirect to index with success message
-    return render_template("post_process.html",deposit_id=deposit_id, design_id=design_id,stage=stage, machine_id=machine_id, material_id=material_id,message=request.args.get("message"))
+    return render_template("post_process.html",deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id,message=request.args.get("message"))
         
 
 @app.route('/generate_video/<path:folder>')
