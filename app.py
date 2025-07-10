@@ -484,6 +484,7 @@ def s3ircamera_update(filename):
 def bulk_update_folder(folder):
     machine_id = int(request.args.get('machine_id'))
     material_id = int(request.args.get('material_id'))
+    operator_id = int(session.get('operator_id')) 
     deposit_id = session.get('deposit_id')
     stage = request.args.get('stage')
 
@@ -514,30 +515,30 @@ def bulk_update_folder(folder):
 
             # Insert into in_process
             cur.execute("""
-                INSERT INTO in_process (deposit_id,File_name, Sensor_ID, m_id, mat_id, type)
-                VALUES (%s, %s, %s, %s, %s,%s)
-                ON CONFLICT (File_name) DO NOTHING
-            """, (deposit_id,filename, 3, machine_id, material_id, 'IR_Camera'))
+                INSERT INTO in_process (deposit_id,file_name, sensor_ID, type, operator_id ,  machine_id, material_id)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (deposit_id, file_name) DO NOTHING
+            """, (deposit_id, filename, 3,'IR_Camera', operator_id, machine_id, material_id))
 
             # Insert into sensor3
             cur.execute("""
-                INSERT INTO sensor3 (file_name, sensor_id, type_id, type)
+                INSERT INTO sensor_3 (deposit_id, file_name,type_id, type)
                 VALUES (%s, %s, %s, %s)
-                ON CONFLICT (file_name) DO NOTHING
-            """, (filename, 3, 1, 'IR_Camera'))
+                ON CONFLICT (deposit_id, file_name) DO NOTHING
+            """, (deposit_id, filename, 1, 'IR_Camera'))
 
             # Insert into S3_IRCamera
             for idx, row in df.iterrows():
                 row_index = idx + 1
-                values = [filename, 1, row_index] + [float(row[i]) for i in df.columns]
+                values = [deposit_id, filename, 1, row_index] + [float(row[i]) if pd.notna(row[i]) else None for i in df.columns]
                 cur.execute("""
-                    INSERT INTO S3_IRCamera (
-                        File_name, type_id, Row_Index,
+                    INSERT INTO s3_ircamera (
+                        deposit_id, file_name, type_id, row_index,
                         Col1, Col2, Col3, Col4, Col5, Col6, Col7, Col8, Col9, Col10,
                         Col11, Col12, Col13, Col14, Col15, Col16, Col17, Col18, Col19, Col20
                     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                              %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT (File_name, Row_Index) DO NOTHING
+                            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (deposit_id,file_name, row_index) DO NOTHING
                 """, values)
 
             conn.commit()
@@ -597,6 +598,9 @@ def post_process():
             file_exists = cur.fetchone()[0]
 
             if file_exists > 0:
+                conn.commit()
+                curr.close()
+                conn.close()
                 # File already uploaded — show preview with message
                 return render_template('post_process.html',deposit_id=deposit_id, machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
             
