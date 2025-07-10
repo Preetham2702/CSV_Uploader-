@@ -74,6 +74,14 @@
       {% endfor %}
     </select>
 
+    <label for="operator_id">Operator ID</label>
+    <select name="operator_id" required>
+      {% for operator_id, operator_name in operators %}
+        <option value="{{ operator_id }}">{{ operator_id }} - {{ operator_name }}</option>
+      {% endfor %}
+    </select>
+
+
     <label for="deposit_id">Deposit ID</label>
     <input type="number" name="deposit_id" required>
 
@@ -82,6 +90,10 @@
 
   <div style="text-align: center; margin-top: 20px;">
     <a href="{{ url_for('add_material', stage=stage) }}">Add New Material</a>
+  </div>
+
+  <div style="text-align: center; margin-top: 20px;">
+    <a href="{{ url_for('operator', stage=stage) }}">Add New User</a>
   </div>
 
   <div style="text-align: center; margin-top: 10px;">

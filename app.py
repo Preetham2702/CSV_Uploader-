@@ -60,7 +60,7 @@ def handle_sensor_selection():
     elif sensor == 'sensor2':
         return "Sensor 2 page coming soon."
     elif sensor == 'sensor3':
-        return redirect(url_for('sensor3_subtype'))
+        return redirect(url_for('sensor3_subtype', sensor = 'sensor3'))
     else:
         return "Invalid sensor"
 
@@ -88,7 +88,7 @@ def machine():
     cur = conn.cursor()
     
     # Check if material exists
-    cur.execute("SELECT mat_id, mat_name FROM material")
+    cur.execute("SELECT material_id, material_name FROM material")
     materials = cur.fetchall()
 
     if not materials:  # No materials in DB
@@ -96,26 +96,46 @@ def machine():
         conn.close()
         return redirect(url_for('add_material',stage=stage))  # redirect to add_material page
 
+    #check if users exists
+    cur.execute("SELECT operator_id, operator_name FROM operator")
+    operators = cur.fetchall()
+
+    if not operators:  # No users in DB
+        cur.close()
+        conn.close()
+        return redirect(url_for('operator',stage=stage))  # redirect to operator page
+
     if request.method == 'POST':
         machine_id = int(request.form['machine_id'])
         machine_name = request.form['machine_name']
         material_id = int(request.form['material_id'])
+        operator_id = int(request.form['operator_id'])
         deposit_id = int(request.form['deposit_id'])
         
         # store in session
         session['machine_id'] = machine_id
         session['material_id'] = material_id
         session['deposit_id'] = deposit_id
+        session['operator_id'] = operator_id
         session['stage'] = stage
 
         try:
             cur.execute("""
-                INSERT INTO Machine (m_id, m_name)
+                INSERT INTO Machine (machine_id, machine_name)
                 VALUES (%s, %s)
-                ON CONFLICT (m_id) DO NOTHING
+                ON CONFLICT (machine_id) DO NOTHING
             """, (machine_id, machine_name))
 
             conn.commit()
+
+            if stage == 'ircamera' or stage == 'post_process':
+                # Check if deposit_id exists in design_stage
+                cur.execute("SELECT COUNT(*) FROM design_stage WHERE deposit_id = %s", (deposit_id,))
+                deposit_id_exists = cur.fetchone()[0]
+                if deposit_id_exists == 0:
+                    cur.close()
+                    conn.close()
+                    return redirect(url_for('design_stage', deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id, operator_id=operator_id, message="⚠️ Deposit ID does not exist. Please enter a valid one."))
 
         except Exception as e:
             return f"Error: {e}"
@@ -124,15 +144,44 @@ def machine():
             conn.close()
 
         if stage == 'design_stage':
-            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id))
+            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id,operator_id=operator_id, material_id=material_id))
         elif stage == 'post_process':
-            return redirect(url_for('post_process', deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id))
+            return redirect(url_for('post_process', deposit_id=deposit_id, stage=stage, machine_id=machine_id,operator_id=operator_id, material_id=material_id))
         else:
-            return redirect(url_for('index', deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id))
-
+            return redirect(url_for('index', deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id, operator_id= operator_id))
     # Pass materials list to your machine.html template
-    return render_template('machine.html', materials=materials, stage=stage)
+    return render_template('machine.html', materials=materials,operators=operators, stage=stage)
     
+@app.route('/operator', methods=['GET', 'POST'])
+def operator():
+    stage = request.args.get('stage') or request.form.get('stage')
+    operators = []
+    try:
+        conn = psycopg2.connect(host=hostname, dbname=database, user=username, password=pwd, port=port_id)
+        cur = conn.cursor()
+
+        if request.method == 'POST':
+            operator_name = request.form['operator_name']
+
+            try:
+                cur.execute("INSERT INTO operator (operator_name) VALUES (%s)", (operator_name,))
+                conn.commit()
+
+            except Exception as e:
+                return f"Error inserting values {e}"
+
+        # Load operator table to show in the table:
+        cur.execute("SELECT operator_id, operator_name FROM operator")
+        operators = cur.fetchall()
+
+    except Exception as e:
+        return f"Error table not existing {e}"
+    finally:
+        cur.close()
+        conn.close()
+
+    return render_template('operator.html', operators=operators, stage=stage)
+
 
 @app.route('/add_material', methods=['GET', 'POST'])
 def add_material():
@@ -146,7 +195,7 @@ def add_material():
             material_name = request.form['material_name']
 
             try:
-                cur.execute("INSERT INTO material (mat_name) VALUES (%s)", (material_name,))
+                cur.execute("INSERT INTO material (material_name) VALUES (%s)", (material_name,))
                 conn.commit()
 
             except Exception as e:
@@ -154,7 +203,7 @@ def add_material():
 
 
             # Load material table to show in the table:
-        cur.execute("SELECT mat_id, mat_name FROM material")
+        cur.execute("SELECT material_id, material_name FROM material")
         materials = cur.fetchall()
 
     except Exception as e:
@@ -170,6 +219,7 @@ def index():
     machine_id = request.args.get('machine_id') or session.get('machine_id')
     material_id = request.args.get('material_id') or session.get('material_id')
     deposit_id = request.args.get('deposit_id') or session.get('deposit_id')
+    operator_id = request.args.get('operator_id') or session.get('operator_id') #l
     stage = request.args.get('stage') or session.get('stage')
     message = request.args.get('message') 
 
@@ -191,7 +241,7 @@ def index():
                 folder = rel_dir.split(os.sep)[0]
                 grouped_files.setdefault(folder, []).append(rel_file)
 
-    return render_template('index.html', deposit_id=deposit_id,files=grouped_files,stage=stage,machine_id=machine_id,material_id=material_id,message=message)  # pass message to template
+    return render_template('index.html', deposit_id=deposit_id,files=grouped_files,stage=stage,machine_id=machine_id,material_id=material_id,operator_id=operator_id, message=message)  # pass message to template
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -207,11 +257,13 @@ def design_stage():
     machine_id = request.args.get('machine_id')
     material_id = request.args.get('material_id')
     deposit_id = request.args.get('deposit_id') or session.get('deposit_id')
+    operator_id = request.args.get('operator_id')
     stage = request.args.get('stage')
 
     if request.method == 'POST':
         machine_id = request.form.get('machine_id')
         material_id = request.form.get('material_id')
+        operator_id = request.form.get('operator_id')
         stage = request.args.get('stage')
 
         if not machine_id or not material_id:
@@ -220,11 +272,11 @@ def design_stage():
         file_name = request.form.get('file_name')
         width = request.form.get('width')
         height = request.form.get('height')
-        depth = request.form.get('depth')
+        length = request.form.get('length')
 
         width = float(width) if width else None
         height = float(height) if height else None
-        depth = float(depth) if depth else None
+        length = float(length) if length else None
 
         try:
             conn = psycopg2.connect(host=hostname, dbname=database, user=username, password=pwd, port=port_id)
@@ -234,13 +286,17 @@ def design_stage():
 
             if file_exists > 0:
                 # File already uploaded — show preview with message
-                return render_template('design_stage.html',deposit_id=deposit_id,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
+                return render_template('design_stage.html',deposit_id=deposit_id,machine_id=machine_id,material_id=material_id,operator_id=operator_id, stage=stage,message="⚠️ File already uploaded!")
             
-            cur.execute("INSERT INTO design_stage (deposit_id,file_name,width,height,depth,m_id, mat_id) VALUES (%s, %s, %s, %s, %s, %s,%s)", (deposit_id, file_name,width,height,depth,machine_id, material_id))
+            cur.execute("INSERT INTO design_stage (deposit_id,file_name,length, width, height, operator_id, machine_id, material_id) VALUES (%s, %s, %s, %s, %s, %s,%s, %s)", (deposit_id, file_name,length,width, height, operator_id, machine_id, material_id))
 
             conn.commit()
 
-            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id,message = 'Inserted values sucessfully'))
+            cur.execute(""" INSERT INTO overview (deposit_id, machine_id, material_id, operator_id) VALUES (%s, %s, %s, %s) ON CONFLICT (deposit_id) DO NOTHING """, (deposit_id, machine_id, material_id, operator_id))
+
+            conn.commit()
+
+            return redirect(url_for('design_stage',deposit_id=deposit_id, stage=stage, machine_id=machine_id, material_id=material_id,operator_id=operator_id,message = 'Inserted values sucessfully'))
 
         except Exception as e:
             return f"Error inserting values {e}"
@@ -249,7 +305,7 @@ def design_stage():
             cur.close()
             conn.close()  
 
-    return render_template("design_stage.html",deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id,message=request.args.get("message"))
+    return render_template("design_stage.html",deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id, operator_id=operator_id, message=request.args.get("message"))
         
 
 @app.route('/preview_sensor1/<path:filename>')
@@ -363,6 +419,7 @@ def s3ircamera_update(filename):
     machine_id = session.get('machine_id')
     material_id = session.get('material_id')
     deposit_id = session.get('deposit_id')
+    operator_id = int(session.get('operator_id'))
     stage = session.get('stage')
 
 
@@ -382,31 +439,31 @@ def s3ircamera_update(filename):
         if file_exists > 0:
             # File already uploaded — show preview with message
             return render_template('preview_ircamera.html',tables=[df_html], deposit_id=deposit_id,filename=filename,show_button = False,machine_id=machine_id,material_id=material_id,stage=stage,message="⚠️ File already uploaded!")
-
+        
         # Otherwise continue insertion
         cur.execute("""
-            INSERT INTO in_process (deposit_id,File_name, Sensor_ID, m_id, mat_id, type)
-            VALUES (%s, %s, %s, %s, %s, %s)
-            ON CONFLICT (File_name) DO NOTHING
-        """, (deposit_id, filename, 3, machine_id, material_id, 'IR_Camera'))
+            INSERT INTO in_process (deposit_id,file_name, sensor_ID, type, operator_id ,  machine_id, material_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (deposit_id, file_name) DO NOTHING
+        """, (deposit_id, filename, 3,'IR_Camera', operator_id, machine_id, material_id))
 
         cur.execute("""
-            INSERT INTO sensor3 (file_name, sensor_id, type_id, type)
+            INSERT INTO sensor_3 (deposit_id, file_name,type_id, type)
             VALUES (%s, %s, %s, %s)
-            ON CONFLICT (file_name) DO NOTHING
-        """, (filename, 3, 1, 'IR_Camera'))
+            ON CONFLICT (deposit_id, file_name) DO NOTHING
+        """, (deposit_id, filename, 1, 'IR_Camera'))
 
         for idx, row in df.iterrows():
             row_index = idx + 1
-            values = [filename, 1, row_index] + [float(row[i]) if pd.notna(row[i]) else None for i in df.columns]
+            values = [deposit_id,filename, 1, row_index] + [float(row[i]) if pd.notna(row[i]) else None for i in df.columns]
             cur.execute("""
                 INSERT INTO s3_ircamera (
-                    file_name, type_id, Row_Index,
+                    deposit_id, file_name, type_id, row_index,
                     Col1, Col2, Col3, Col4, Col5, Col6, Col7, Col8, Col9, Col10,
                     Col11, Col12, Col13, Col14, Col15, Col16, Col17, Col18, Col19, Col20
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (File_name, row_index) DO NOTHING
+                          %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ON CONFLICT (deposit_id,file_name, row_index) DO NOTHING
             """, values)
 
         conn.commit()
@@ -418,7 +475,7 @@ def s3ircamera_update(filename):
         return redirect(url_for('index', deposit_id=deposit_id,stage=stage, machine_id=machine_id, material_id=material_id, message="File uploaded successfully"))
 
     except Exception as e:
-        return f"Error uploading to Sensor3_IRCameraData: {e}", 500
+        return f"Error uploading : {e}", 500
     finally:
         if 'cur' in locals(): cur.close()
         if 'conn' in locals(): conn.close()

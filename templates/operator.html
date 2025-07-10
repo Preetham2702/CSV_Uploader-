@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add User</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 50px;
+      background-color: #f9f9f9;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    form {
+      max-width: 500px;
+      margin: auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    table {
+      width: 80%;
+      margin: 40px auto;
+      border-collapse: collapse;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 15px;
+      text-align: center;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      color: #007bff;
+      font-weight: bold;
+      text-decoration: none;
+      font-size: 18px;
+    }
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Enter User Details</h1>
+
+  <form method="POST" action="{{ url_for('operator', stage=stage) }}">
+    <input type="hidden" name="stage" value="{{ stage }}">
+    
+    <label for="operator_name">User Name</label>
+    <input type="text" id="operator_name" name="operator_name" required>
+
+    <button type="submit" name="action" value="add">Add User</button>
+  </form>
+
+  <h2 style="text-align:center; margin-top:50px;">Existing Users</h2>
+  <table>
+    <tr>
+      <th>User ID</th>
+      <th>User Name</th>
+    </tr>
+    {% for operator_id, operator_name in operators %}
+      <tr>
+        <td>{{ operator_id }}</td>
+        <td>{{ operator_name }}</td>
+      </tr>
+    {% endfor %}
+  </table>
+
+  <!-- Back button moved below table and centered -->
+  <div style="text-align: center; margin-top: 30px;">
+    <a class="back-link" href="{{ url_for('machine', stage=stage) }}">← Back to Machine Page</a>
+  </div>
+
+</body>
+</html>
